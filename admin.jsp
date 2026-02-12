@@ -1,0 +1,635 @@
+<%@ page import="com.onlineexamportal.dao.ExamDAO"%>
+<%@ page import="com.onlineexamportal.model.Exam"%>
+<%@ page import="com.onlineexamportal.dao.UserDAO" %>
+<%@ page import="java.util.List"%>
+<%@ page import="java.sql.Connection"%>
+<%@ page import="java.sql.PreparedStatement"%>
+<%@ page import="com.onlineexamportal.model.*"%>
+<%@ page import="java.sql.ResultSet"%>
+<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%
+    User user = (User) session.getAttribute("user");
+    if(user == null || !user.getRole().equals("admin")) { response.sendRedirect("login.jsp"); }
+
+    ExamDAO examDAO = new ExamDAO();
+    List<Exam> exams = examDAO.getAllExams();
+%>
+<%
+response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+response.setHeader("Pragma", "no-cache");
+response.setDateHeader("Expires", 0);
+%>
+
+<%@ page import="com.onlineexamportal.util.ActiveUserStore" %>
+<%@ page import="com.onlineexamportal.model.User" %>
+
+<%-- <%
+    
+    boolean takeover = false;
+    if(user != null) {
+        takeover = ActiveUserStore.isTakeoverRequested(user.getId());
+    }
+%> --%>
+<%-- <%= ((User)session.getAttribute("user")).getRole() %> --%>
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" href="online-test.png" type="image/png">
+
+</head>
+<body>
+    <div class="page-wrapper">
+    <div class="container" style="width:1100px;">
+
+        <h2>Admin Dashboard</h2>
+        <h3>Select an option from below:</h3>
+
+        <select id="adminMenu" class="admin-select" onchange="handleMenuChange()">
+            <option value="">--select--</option>
+            <option value="addExam"> Add Exam </option>
+            <option value="addQuestion"> Add Question </option>
+            <option value="addMultipleQ"> Add Multiple questions </option>
+            <option value="users"> Users</option>
+            <option value="exams"> Exams</option>  
+            <option value="rescheduleExam">Reschedule Exam</option>  
+            <option value="manageQuestions"> Manage Questions</option>  
+            
+  
+            <%-- <option value="deviceRequests"> Device Login Requests </option> --%>
+
+
+           
+        </select>
+        
+        <!-- Add Exam -->
+         <div id="addExam" class="menu-section">
+             <h3>Add Exam</h3>
+             <form action="admin" method="post">
+                 <%-- <input type="hidden" name="action" value="addExam"> --%>
+                 <input type="text" name="examName" placeholder="Exam Name" required>
+                 <input type="number" name="duration" placeholder="Duration (minutes)" required>
+                 <input type="submit" value="Add Exam">
+                </form>
+            </div>
+            
+            <!-- Add Question -->
+        <div id="addQuestion" class="menu-section">
+            <h3>Add Question</h3>
+            <form action="admin" method="post">
+            <input type="hidden" name="action" value="addQuestion">
+
+            <label for="examId">Select Exam:</label><br>
+            <select name="examId" id="examId" required>
+                <% for(Exam e : exams) { %>
+                    <option value="<%= e.getId() %>"><%= e.getName() %></option>
+                <% } %>
+            </select>
+
+            <input type="text" name="question" placeholder="Question Text" required>
+            <input type="text" name="option1" placeholder="Option 1" required>
+            <input type="text" name="option2" placeholder="Option 2" required>
+            <input type="text" name="option3" placeholder="Option 3">
+            <input type="text" name="option4" placeholder="Option 4">
+            <input type="text" name="answer" placeholder="Correct Answer" required>
+            
+            <input type="submit" value="Add Question">
+        </form>
+        </div>
+
+    <div id="addMultipleQ" class="menu-section">
+        
+        <h3>Add Multiple Questions</h3>
+        <form action="admin" method="post" id="multiQuestionForm">
+    <input type="hidden" name="action" value="addMultipleQuestions">
+
+    <label for="examIdMulti">Select Exam:</label>
+    <select name="examId" id="examIdMulti" required>
+        <% for(Exam e : exams) { %>
+            <option value="<%= e.getId() %>"><%= e.getName() %></option>
+            <% } %>
+        </select>
+        
+        <p>Paste questions in this format (numbered, options A-D, last line Answer: ...):</p>
+        <pre>
+            1. Question text
+            A) Option 1
+            B) Option 2
+            C) Option 3
+            D) Option 4
+            Answer: C) Correct Option
+
+            2. Question 2...
+</pre>
+
+<textarea name="bulkQuestions" id="bulkQuestions" rows="20" style="width:100%;" 
+placeholder="Paste your questions here..." required></textarea>
+
+<input type="submit" value="Add All Questions" style="margin-top:10px;">
+</form>
+
+</div>
+
+
+<div id="users" class="menu-section">
+    <h3>Users</h3>
+    
+    <table>
+    <tr>
+        <th>ID</th>
+        <th>User Name</th>
+        <th>Email</th>
+        <!-- <th>Status</th>
+        <th>Action</th> -->
+            
+        </tr>
+        
+        <%
+        String sql =
+        "SELECT id,name,email from users";
+        
+        
+        try (
+            Connection conn = com.onlineexamportal.util.DBConnection.getConnection();
+            PreparedStatement ps = conn.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
+            ) {
+                while (rs.next()) {
+                    %>
+                    <tr>
+                        <td><%=rs.getInt("id") %></td>
+                        <td><%= rs.getString("name") %></td>
+                        <td><%= rs.getString("email") %></td>
+                        
+                    </tr>
+                    <%
+                }
+            } catch (Exception e) {
+            
+            out.println("<tr><td colspan='5'>Error loading data</td></tr>");           
+             }
+            %>
+            
+        </table>
+    </div>
+    
+<div id="exams" class="menu-section">
+
+<h3>Exams</h3>
+
+<table>
+    <tr>
+        <th>EXAM ID</th>
+        <th>Exam Name</th>
+        <th>Duration (min)</th>
+        <th>No. of Questions</th> 
+        <th>Action</th>
+        
+    </tr>
+      
+<%
+String sql1 =
+    "SELECT e.id, e.name AS exam_name, e.duration, COUNT(q.id) AS question_count " +
+    "FROM exams e " +
+    "LEFT JOIN questions q ON e.id = q.exam_id " +
+    "GROUP BY e.id, e.name, e.duration " +
+    "ORDER BY e.id";
+
+try (
+    Connection conn = com.onlineexamportal.util.DBConnection.getConnection();
+    PreparedStatement ps = conn.prepareStatement(sql1);
+    ResultSet rs = ps.executeQuery();
+) {
+    while (rs.next()) {
+        %>
+<tr>
+    <td><%= rs.getInt("id") %></td>
+    <td><%= rs.getString("exam_name") %></td>
+    <td><%= rs.getInt("duration") %></td>
+    <td><%= rs.getInt("question_count") %></td>
+    <td>
+    <form action="admin" method="post"
+              onsubmit="return confirm('Are you sure you want to delete this exam? All questions will also be deleted!');">
+            <input type="hidden" name="action" value="deleteExam">
+            <input type="hidden" name="examId" value="<%= rs.getInt("id") %>">
+            <input type="submit" value="Delete" style="background:red;color:white;border:none;padding:6px 10px;cursor:pointer;">
+        </form></td>
+
+</tr>
+<%
+    }
+} catch (Exception e) {
+    out.println("<tr><td colspan='3'>Error loading exams</td></tr>");
+}
+%>
+
+</table> 
+</div>
+
+
+<div id="manageQuestions" class="menu-section" style="display:none;">
+    <h3>Manage Questions</h3>
+
+    <form method="get">
+        <label>Select Exam:</label>
+        <select name="examId" onchange="this.form.submit()">
+            <option value="">-- Select Exam --</option>
+            <% for (Exam e : exams) { %>
+                <option value="<%= e.getId() %>"
+                    <%= (request.getParameter("examId") != null &&
+                         request.getParameter("examId").equals(String.valueOf(e.getId())))
+                         ? "selected" : "" %>>
+                    <%= e.getName() %>
+                </option>
+            <% } %>
+        </select>
+    </form>
+
+<%
+String examIdParam = request.getParameter("examId");
+if (examIdParam != null && !examIdParam.isEmpty()) {
+    int examId = Integer.parseInt(examIdParam);
+
+    String qSql = "SELECT * FROM questions WHERE exam_id=?";
+    try (
+        Connection conn = com.onlineexamportal.util.DBConnection.getConnection();
+        PreparedStatement ps = conn.prepareStatement(qSql)
+    ) {
+        ps.setInt(1, examId);
+        ResultSet rs = ps.executeQuery();
+%>
+
+<table border="1" width="100%" style="margin-top:15px;">
+<tr>
+    <th>ID</th>
+    <th>Question</th>
+    <th>Actions</th>
+</tr>
+
+<%
+    while (rs.next()) {
+%>
+<tr>
+    <td><%= rs.getInt("id") %></td>
+
+    <td>
+        <form action="admin" method="post">
+            <input type="hidden" name="action" value="updateQuestion">
+            <input type="hidden" name="questionId" value="<%= rs.getInt("id") %>">
+            <input type="text" name="question"
+                   value="<%= rs.getString("question") %>"
+                   style="width:95%;" required>
+            <br><br>
+
+                <input type="text" name="option1"
+                value="<%= rs.getString("option1") %>" required><br>
+
+                <input type="text" name="option2"
+                value="<%= rs.getString("option2") %>" required><br>
+
+                <input type="text" name="option3"
+                value="<%= rs.getString("option3") %>"><br>
+
+                <input type="text" name="option4"
+                value="<%= rs.getString("option4") %>"><br>
+            <label> Answer: </label>
+                <input type="text" name="answer"
+                value="<%= rs.getString("answer") %>" required><br><br>
+
+                <input type="submit" value="Update">
+        </form>
+    </td>
+
+    <td>
+        <form action="admin" method="post"
+              onsubmit="return confirm('Delete this question?');">
+            <input type="hidden" name="action" value="deleteQuestion">
+            <input type="hidden" name="questionId" value="<%= rs.getInt("id") %>">
+            <input type="submit" value="Delete"
+                   style="background:red;color:white;">
+        </form>
+    </td>
+</tr>
+<%
+    }
+%>
+</table>
+
+<%
+    } catch (Exception e) {
+        out.println("<p>Error loading questions</p>");
+    }
+}
+%>
+</div>
+
+   
+        <form method ="post" action="logout" id="logoutForm">
+               <button type = "submit">Logout</button>
+           </form>
+<div id="rescheduleExam" class="menu-section" style="display:none;">
+<h3>Reschedule Exam</h3>
+
+<table border="1" width="100%">
+<tr>
+    <th>ID</th>
+    <th>User Name</th>
+    <th>Email</th>
+    <th>Action</th>
+</tr>
+
+<%
+String sqlxyz = "SELECT id,name,email FROM users";
+try (
+    Connection conn = com.onlineexamportal.util.DBConnection.getConnection();
+    PreparedStatement ps = conn.prepareStatement(sqlxyz);
+    ResultSet rs = ps.executeQuery();
+) {
+    while (rs.next()) {
+%>
+<tr>
+    <td><%= rs.getInt("id") %></td>
+    <td><%= rs.getString("name") %></td>
+    <td><%= rs.getString("email") %></td>
+    <td>
+        <form method="get">
+            <input type="hidden" name="userId" value="<%= rs.getInt("id") %>">
+            <input type="submit" value="Reschedule Exam">
+        </form>
+    </td>
+</tr>
+
+<%
+    }
+} catch(Exception e) {
+    out.println("<tr><td colspan='4'>Error loading users</td></tr>");
+}
+%>
+</table>
+
+<%
+String resUserId = request.getParameter("userId");
+if (resUserId != null) {
+%>
+
+<hr>
+<h4>Select Exam to Reschedule</h4>
+
+<form action="admin" method="post"
+      onsubmit="return confirm('Are you sure you want to reschedule this exam? This will delete previous attempts!');">
+
+    <input type="hidden" name="action" value="rescheduleExam">
+    <input type="hidden" name="userId" value="<%= resUserId %>">
+
+    <select name="examId" required>
+        <option value="">-- Select Exam --</option>
+        <% for (Exam e : exams) { %>
+            <option value="<%= e.getId() %>"><%= e.getName() %></option>
+        <% } %>
+    </select>
+
+    <input type="submit" value="Confirm Reschedule">
+</form>
+
+
+
+<%
+}
+%>
+</div>
+</div>
+
+<!-- protection script -->
+<script>
+    document.addEventListener('contextmenu', e=>e.preventDefault());
+    window.onpageshow = function(event) {
+    if (event.persisted) {
+        alert('You pressed back button or refresh! ');
+        window.location.href = "index.jsp";
+    }
+};
+
+   document.addEventListener("keydown", function (e) {
+    if (
+        e.key === "F12" ||
+        (e.ctrlKey && e.shiftKey && ["i","c","j"].includes(e.key.toLowerCase())) ||
+        (e.ctrlKey && ["u","s"].includes(e.key.toLowerCase()))
+    ) {
+        e.preventDefault();
+    }
+});
+
+    document.addEventListener("contextmenu", e => e.preventDefault());
+
+
+function handleMenuChange() {
+    const sections = document.querySelectorAll('.menu-section');
+    sections.forEach(section => section.style.display = 'none');
+
+    const selected = document.getElementById('adminMenu').value;
+    if (selected) {
+        document.getElementById(selected).style.display = 'block';
+    }
+}
+
+function toggleQuestions(examId) {
+    const row = document.getElementById("questions-" + examId);
+    row.style.display = row.style.display === "none" ? "table-row" : "none";
+}
+
+
+
+document.addEventListener("DOMContentLoaded", function () {
+    const urlParams = new URLSearchParams(window.location.search);
+    const param = new URLSearchParams(window.location.search);
+
+
+    if (urlParams.has("examId")) {
+        document.getElementById("manageQuestions").style.display = "block";
+        document.getElementById("adminMenu").value = "manageQuestions";
+    }
+
+    if(params.has("userId"))
+    {
+        document.getElementById("manageQuestions").style.display = "block";
+        document.getElementById("adminMenu").value = "rescheduleExam";
+        
+    }
+});
+
+</script>
+
+
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<%-- <!-- DEVICE LOGIN REQUESTS -->
+
+<div id="deviceRequests" class="menu-section" style="display:none;">
+    <h3>Device Login Requests</h3>
+
+    <table border="1" width="100%">
+        <tr>
+            <th>User ID</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Old Session</th>
+            <th>New Session</th>
+            <th>Status</th>
+            <th>Action</th>
+        </tr>
+
+        <%
+            String reqSql =
+                "SELECT r.id, u.id AS user_id, u.name, u.email, " +
+                "r.old_session_id, r.new_session_id, r.status " +
+                "FROM device_login_requests r " +
+                "JOIN users u ON r.user_id = u.id " +
+                "WHERE r.status='PENDING'";
+
+            try (
+                Connection conn = com.onlineexamportal.util.DBConnection.getConnection();
+                PreparedStatement ps = conn.prepareStatement(reqSql);
+                ResultSet rs = ps.executeQuery();
+            ) {
+                while (rs.next()) {
+        %>
+        <tr>
+            <td><%= rs.getInt("user_id") %></td>
+            <td><%= rs.getString("name") %></td>
+            <td><%= rs.getString("email") %></td>
+            <td><%= rs.getString("old_session_id") %></td>
+            <td><%= rs.getString("new_session_id") %></td>
+            <td><%= rs.getString("status") %></td>
+            <td>
+                <form action="admin" method="post" style="display:inline;">
+                    <input type="hidden" name="action" value="approveDevice">
+                    <input type="hidden" name="requestId" value="<%= rs.getInt("id") %>">
+                    <input type="submit" value="Approve" style="background:green;color:white;">
+                </form>
+
+                <form action="admin" method="post" style="display:inline;">
+                    <input type="hidden" name="action" value="rejectDevice">
+                    <input type="hidden" name="requestId" value="<%= rs.getInt("id") %>">
+                    <input type="submit" value="Reject" style="background:red;color:white;">
+                </form>
+            </td>
+        </tr>
+        <%
+                }
+            } catch (Exception e) {
+                out.println("<tr><td colspan='7'>No requests</td></tr>");
+            }
+        %>
+    </table>
+</div>
+
+ --%>
+
+
+
+
+
+
+<%-- <div id="manageQuestions" class="menu-section">
+    <h3>Manage Questions</h3>
+
+    <form method="get">
+        <label>Select Exam:</label>
+        <select name="examId" onchange="this.form.submit()">
+            <option value="">-- Select Exam --</option>
+            <% for(Exam e : exams) { %>
+                <option value="<%= e.getId() %>"
+                    <%= (request.getParameter("examId") != null &&
+                         request.getParameter("examId").equals(String.valueOf(e.getId())))
+                         ? "selected" : "" %>>
+                    <%= e.getName() %>
+                </option>
+            <% } %>
+        </select>
+    </form>
+
+<%
+String examIdParam = request.getParameter("examId");
+if (examIdParam != null) {
+    int examId = Integer.parseInt(examIdParam);
+
+    String qSql = "SELECT * FROM questions WHERE exam_id=?";
+    try (
+        Connection conn = com.onlineexamportal.util.DBConnection.getConnection();
+        PreparedStatement ps = conn.prepareStatement(qSql)
+    ) {
+        ps.setInt(1, examId);
+        ResultSet rs = ps.executeQuery();
+%>
+
+<table border="1" width="100%" style="margin-top:15px;">
+<tr>
+    <th>ID</th>
+    <th>Question</th>
+    <th>Actions</th>
+</tr>
+
+<%
+    while (rs.next()) {
+%>
+<tr>
+    <td><%= rs.getInt("id") %></td>
+
+    <td>
+        <form action="admin" method="post">
+            <input type="hidden" name="action" value="updateQuestion">
+            <input type="hidden" name="questionId" value="<%= rs.getInt("id") %>">
+            <input type="text" name="questionText"
+                   value="<%= rs.getString("question_text") %>"
+                   style="width:90%;" required>
+            <br><br>
+            <input type="submit" value="Update">
+        </form>
+    </td>
+
+    <td>
+        <form action="admin" method="post"
+              onsubmit="return confirm('Delete this question?');">
+            <input type="hidden" name="action" value="deleteQuestion">
+            <input type="hidden" name="questionId" value="<%= rs.getInt("id") %>">
+            <input type="submit" value="Delete"
+                   style="background:red;color:white;">
+        </form>
+    </td>
+</tr>
+<%
+    }
+%>
+</table>
+
+<%
+    } catch (Exception e) {
+        out.println("<p>Error loading questions</p>");
+    }
+}
+%>
+</div> --%>
+      
