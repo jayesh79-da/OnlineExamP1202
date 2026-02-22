@@ -19,13 +19,15 @@
 <style>
    html,body
    {
-        overflow:hidden;
+        overflow-x:hidden;
    }
 
 #chatbot {
     position: fixed;
-    bottom: 150px;
+    bottom: 20px;
     right: 20px;
+    max-width: 90vw;
+    max-height: 80vh;
     width: 400px;
     height:400px;
     background: #ffffff;
@@ -284,11 +286,8 @@ function botReply(msg) {
         reply = `
         🛡 <b>Security Architecture Overview</b><br><br>
         Our portal implements:<br>
-        ✔ Session validation system<br>
-        ✔ Browser activity tracking<br>
         ✔ Tab switch detection<br>
         ✔ Full-screen lock mechanism<br>
-        ✔ Automatic logout on suspicious behavior<br><br>
         These ensure fair and transparent examination conduct.
         `;
     }
@@ -360,7 +359,6 @@ function dragElement(elmnt) {
         document.onmouseup = closeDragElement;
         document.onmousemove = elementDrag;
     }
-
     function elementDrag(e) {
         e.preventDefault();
 
@@ -369,13 +367,25 @@ function dragElement(elmnt) {
         pos3 = e.clientX;
         pos4 = e.clientY;
 
-        elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
-        elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+        let newTop = elmnt.offsetTop - pos2;
+        let newLeft = elmnt.offsetLeft - pos1;
 
-        // Remove bottom/right positioning after drag
+    // Prevent going outside screen
+        if (newTop < 0) newTop = 0;
+        if (newLeft < 0) newLeft = 0;
+
+        if (newLeft + elmnt.offsetWidth > window.innerWidth)
+            newLeft = window.innerWidth - elmnt.offsetWidth;
+
+        if (newTop + elmnt.offsetHeight > window.innerHeight)
+            newTop = window.innerHeight - elmnt.offsetHeight;
+
+        elmnt.style.top = newTop + "px";
+        elmnt.style.left = newLeft + "px";
+
         elmnt.style.bottom = "auto";
         elmnt.style.right = "auto";
-    }
+}
 
     function closeDragElement() {
         document.onmouseup = null;
