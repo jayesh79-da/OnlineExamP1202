@@ -73,7 +73,7 @@
     %>
     <p>Accuracy: <%= String.format("%.2f", accuracy) %>%</p>
 
-    <p>Time Taken: <%= result.getTimeTaken() %> seconds</p>
+    <p>Time Taken: <%= result.getTimeTaken()/60 %> : <%= result.getTimeTaken()%60 %> mins</p>
 
    
 
