@@ -18,7 +18,7 @@
 <div class="leaderboard-container">
     <h2>Leaderboard</h2>
     <table>
-        <tr><th>Rank</th><th>Candidate</th><th>Score</th></tr>
+        <tr><th>Rank</th><th>Candidate</th><th>Score</th><th>Time Taken</th></tr>
         <% int rank = 1; for(Result r : leaderboard) { %>
             <tr>
                 <td>
@@ -27,6 +27,7 @@
 
                 <td><%= r.getUserName() %></td>
                 <td><%= r.getScore() %></td>
+                <td><%= r.getTimeTaken()/60 %>:<%= r.getTimeTaken()%60 %> mins</td>
             </tr>
         <% rank++; } %>
     </table>
